@@ -16,7 +16,6 @@ local b64Charsets = {
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz*&|:;,!?@#+/'
 }
 local matchInlinePattern = '%$CS(.+)%$CE'
-local extendedMatchInlinePattern = '(%$CS.+%$CE)'
 local formatInlinePattern = '$CS%s$CE'
 local cfgPath = 'moonloader/config/cryptomsg.ini'
 
@@ -45,6 +44,17 @@ function main()
     
     sampRegisterChatCommand('encrypt', cmdEncrypt)
     sampRegisterChatCommand('decrypt', cmdDecrypt)
+
+    hooks = {
+        {'onSendChat', {1}, true, true, false},
+        {'onSendCommand', {1}, true, false, false},
+        {'onSendDialogResponse', {4}, true, true, false},
+        {'onServerMessage', {2}, false, false, true},
+        {'onChatMessage', {2}, false, false, true}
+    }
+    for _, hook in ipairs(hooks) do
+        patchHook(unpack(hook))
+    end
 end
 
 function cmdEncrypt(params)
@@ -73,89 +83,39 @@ function cmdDecrypt(params)
     end
 end
 
--- Encryption
--- ==========
+function patchHook(event, argsPos, inline, autoEncryptionAvailable, decryption)
+    sampev[event] = function(...)
+        local arg = {...}
+        for _, argPos in ipairs(argsPos) do
+            if decryption and not cfg.general.autoDecrypt then return true end
 
-function sampev.onSendChat(message)
-    local plainText = cfg.general.autoEncrypt and message or getInlineString(message)
-    if plainText ~= nil then
-        local result, returned = encrypt(plainText)
-        if result and returned then
-            if cfg.general.autoEncrypt then
-                return {string.format(formatInlinePattern, returned)}
-            else
-                sendInlineCryptoMessage(false)
-                return {replaceInlineString(message, string.format(formatInlinePattern, returned))}
+            local text = nil
+
+            if autoEncryptionAvailable and cfg.general.autoEncrypt then
+                text = arg[argPos]
+            elseif inline or decryption then
+                text = getInlineString(arg[argPos])
             end
-        else
-            sendCryptoErrorMessage(false, returned)
-            return false
-        end
-    end
-end
 
-function sampev.onSendCommand(command)
-    local plainText = getInlineString(command)
-    if plainText ~= nil then
-        local result, returned = encrypt(plainText)
-        if result and returned then
-            sendInlineCryptoMessage(false)
-            return {replaceInlineString(command, string.format(formatInlinePattern, returned))}
-        else
-            sendCryptoErrorMessage(false, returned)
-            return false
-        end
-    end
-end
-
-function sampev.onSendDialogResponse(dialogId, button, listboxId, input)
-    local plainText = cfg.general.autoEncrypt and input or getInlineString(input)
-    if plainText ~= nil then
-        local result, returned = encrypt(plainText)
-        if result and returned then
-            if cfg.general.autoEncrypt then
-                return {dialogId, button, listboxId, string.format(formatInlinePattern, returned)}
+            if text ~= nil then
+                local result, returned = (decryption and decrypt or encrypt)(text)
+                print(string.format('Result: %s | Returned: %s | Text: %s', result, returned, text))
+                if result and returned then
+                    if autoEncryptionAvailable and cfg.general.autoEncrypt then
+                        arg[argPos] = string.format(formatInlinePattern, returned)
+                    elseif inline or decryption then
+                        arg[argPos] = replaceInlineString(arg[argPos], decryption and returned or string.format(formatInlinePattern, returned))
+                    else print('Neither autoEncryptionAvailable, nor inline mode enabled.')
+                    end
+                else
+                    sendCryptoErrorMessage(decryption, returned)
+                end
             else
-                sendInlineCryptoMessage(false)
-                return {dialogId, button, listboxId, replaceInlineString(input, string.format(formatInlinePattern, returned))}
+                print(string.format('Text is nil (original string: %s).', arg[argPos]))
             end
-        else
-            sendCryptoErrorMessage(false, returned)
-            return false
         end
-    end
-end
-
--- Decryption
--- ==========
-
-function sampev.onServerMessage(color, text)
-    if not cfg.general.autoDecrypt then return true end
-    local cipherText = getInlineString(text)
-    if cipherText ~= nil then
-        local result, returned = decrypt(cipherText)
-        if result and returned then
-            sendInlineCryptoMessage(true)
-            return {color, replaceInlineString(text, returned)}
-        else
-            sendCryptoErrorMessage(true)
-            return true
-        end
-    end
-end
-
-function sampev.onChatMessage(playerId, text)
-    if not cfg.general.autoDecrypt then return true end
-    local cipherText = getInlineString(text)
-    if cipherText ~= nil then
-        local result, returned = decrypt(cipherText)
-        if result and returned then
-            sendInlineCryptoMessage(true)
-            return {playerId, replaceInlineString(text, returned)}
-        else
-            sendCryptoErrorMessage(true)
-            return true
-        end
+        print(inspect(arg))
+        return arg
     end
 end
 
@@ -188,7 +148,7 @@ end
 
 function sendCryptoErrorMessage(decryption, errorMsg)
     if not cfg.general.showErrorMessages then return end
-    sampAddChatMessage(string.format('%s error%s.', 'Decryption' and decryption or 'Encryption', errorMsg ~= nil and ' (look in console for details)'  or ''), 0xF75A3D)
+    sampAddChatMessage(string.format('%s error%s.', decryption and 'Decryption' or 'Encryption', errorMsg ~= nil and ' (look in console for details)' or ''), 0xF75A3D)
     if errorMsg ~= nil then print('An error has occurred:\n' .. errorMsg) end
 end
 function getInlineString(text)
