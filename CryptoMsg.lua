@@ -158,7 +158,7 @@ end
 
 function sendInlineCryptoMessage(decryption)
     if not cfg.general.showInlineInfoMessages then return end
-    sampAddChatMessage(string.format('Inline %s.', 'decrypted' and decryption or 'encrypted'), 0xAAAAAA)
+    sampAddChatMessage(string.format('Inline %s.', decryption and 'decrypted' or 'encrypted'), 0xAAAAAA)
 end
 
 function sendCryptoErrorMessage(decryption, errorMsg)
