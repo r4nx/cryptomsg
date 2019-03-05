@@ -85,10 +85,9 @@ end
 
 function patchHook(event, argsPos, inline, autoEncryptionAvailable, decryption)
     sampev[event] = function(...)
+        if decryption and not cfg.general.autoDecrypt then return true end
         local arg = {...}
         for _, argPos in ipairs(argsPos) do
-            if decryption and not cfg.general.autoDecrypt then return true end
-
             local text = nil
 
             if autoEncryptionAvailable and cfg.general.autoEncrypt then
@@ -156,6 +155,8 @@ function getInlineString(text)
 end
 
 function replaceInlineString(text, replaceWith)
+    -- Brackets are using to get only first returned value from string.gsub
+    -- http://lua-users.org/wiki/FunctionsTutorial
     return (string.gsub(text, matchInlinePattern, replaceWith))
 end
 
