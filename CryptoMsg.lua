@@ -69,7 +69,7 @@ function main()
         {'onChatMessage', {2}, false, false, true}
     }
     for _, hook in ipairs(hooks) do
-        patchHook(unpack(hook))
+        createHook(unpack(hook))
     end
 end
 
@@ -99,34 +99,37 @@ function cmdDecrypt(params)
     end
 end
 
-function patchHook(event, argsPos, inline, autoEncryptionAvailable, decryption)
+function createHook(event, argsPos, inline, autoEncryptionAvailable, decryption)
     sampev[event] = function(...)
         if decryption and not cfg.general.autoDecrypt then return true end
         local arg = {...}
         for _, argPos in ipairs(argsPos) do
-            local text = nil
+            local exps = nil  -- expressions
 
             if autoEncryptionAvailable and cfg.general.autoEncrypt then
-                text = arg[argPos]
+                exps = {arg[argPos]}
             elseif inline or decryption then
-                text = getInlineString(arg[argPos])
+                exps = {getInlineStrings(arg[argPos])}
             end
 
-            if text ~= nil then
-                local result, returned = (decryption and decrypt or encrypt)(text)
-                print(string.format('Result: %s | Returned: %s | Text: %s', result, returned, text))
-                if result and returned then
-                    if autoEncryptionAvailable and cfg.general.autoEncrypt then
-                        arg[argPos] = string.format(formatInlinePattern, returned)
-                    elseif inline or decryption then
-                        arg[argPos] = replaceInlineString(arg[argPos], decryption and returned or string.format(formatInlinePattern, returned))
-                    else print('Neither autoEncryptionAvailable, nor inline mode enabled.')
+            if exps ~= nil then
+                local processed = {}
+                for _, exp in ipairs(exps) do
+                    local result, returned = (decryption and decrypt or encrypt)(exp)
+                    print(string.format('Result: %s | Returned: %s | Exp: %s', result, returned, exp))
+                    if result and returned then
+                        if autoEncryptionAvailable and cfg.general.autoEncrypt then
+                            arg[argPos] = string.format(formatInlinePattern, returned)
+                        elseif inline or decryption then
+                            arg[argPos] = replaceInlineStrings(arg[argPos], decryption and returned or string.format(formatInlinePattern, returned))
+                        else print('Neither autoEncryptionAvailable, nor inline mode enabled.')
+                        end
+                    else
+                        sendCryptoErrorMessage(decryption, returned)
                     end
-                else
-                    sendCryptoErrorMessage(decryption, returned)
                 end
             else
-                print(string.format('Text is nil (original string: %s).', arg[argPos]))
+                print(string.format('exps are nil (original string: %s).', arg[argPos]))
             end
         end
         print(inspect(arg))
@@ -166,11 +169,11 @@ function sendCryptoErrorMessage(decryption, errorMsg)
     sampAddChatMessage(string.format('%s error%s.', decryption and 'Decryption' or 'Encryption', errorMsg ~= nil and ' (look in console for details)' or ''), 0xF75A3D)
     if errorMsg ~= nil then print('An error has occurred:\n' .. errorMsg) end
 end
-function getInlineString(text)
-    return string.match(text, matchInlinePattern)
+function getInlineStrings(text)
+    return string.gmatch(text, matchInlinePattern)
 end
 
-function replaceInlineString(text, replaceWith)
+function replaceInlineStrings(text, replaceWith)
     -- Brackets are using to get only first returned value from string.gsub
     -- http://lua-users.org/wiki/FunctionsTutorial
     return (string.gsub(text, matchInlinePattern, replaceWith))
