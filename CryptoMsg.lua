@@ -31,7 +31,7 @@ local b64Charsets = {
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz*&|:;,!?@#+/'
 }
-local matchInlinePattern = '%$CS(.+)%$CE'
+local matchInlinePattern = '%$CS(.-)%$CE'
 local formatInlinePattern = '$CS%s$CE'
 local cfgPath = 'moonloader/config/cryptomsg.ini'
 
@@ -114,43 +114,33 @@ end
 function setHook(event, argsPos, inline, autoEncryptionAvailable, decryption)
     sampev[event] = function(...)
         if decryption and not cfg.general.autoDecrypt then return true end
-        local arg = {...}
-        for _, argPos in ipairs(argsPos) do
-            local exps = nil  -- expressions
-
+        local hookArgs = {...}
+        print(string.format('\n// %s //', decryption and 'Decryption' or 'Encryption'))
+        print('Before: ' .. inspect(hookArgs, {newline = '', indent = ''}))
+        for _, i in ipairs(argsPos) do
             if autoEncryptionAvailable and cfg.general.autoEncrypt then
-                exps = {arg[argPos]}
-            elseif inline or decryption then
-                exps = {getInlineStrings(arg[argPos])}
-            end
-
-            if exps ~= nil then
-                local processed = {}
-                for _, exp in ipairs(exps) do
-                    local result, returned = (decryption and decrypt or encrypt)(exp)
-                    print(string.format('Result: %s | Returned: %s | Exp: %s', result, returned, exp))
-                    if result and returned then
-                        if autoEncryptionAvailable and cfg.general.autoEncrypt then
-                            arg[argPos] = string.format(formatInlinePattern, returned)
-                        elseif inline or decryption then
-                            arg[argPos] = replaceInlineStrings(arg[argPos], decryption and returned or string.format(formatInlinePattern, returned))
-                        else print('Neither autoEncryptionAvailable, nor inline mode enabled.')
-                        end
-                    else
-                        sendCryptoErrorMessage(decryption, returned)
-                    end
-                end
+                hookArgs[i] = string.format(formatInlinePattern, encrypt(hookArgs[i]))
+                print('Auto-encrypted:' .. hookArgs[i])
             else
-                print(string.format('exps are nil (original string: %s).', arg[argPos]))
+                hookArgs[i] = string.gsub(hookArgs[i], matchInlinePattern, function(exp)
+                    print('Exp: '.. exp)
+                    if inline or (autoEncryptionAvailable and cfg.general.autoEncrypt) then
+                        return string.format(formatInlinePattern, encrypt(exp))
+                    elseif decryption then
+                        return decrypt(exp)
+                    else
+                        return exp
+                    end
+                end)
             end
         end
-        print(inspect(arg))
-        return arg
+        print('After: ' .. inspect(hookArgs, {newline = '', indent = ''}))
+        return hookArgs
     end
 end
 
 function encrypt(plainText)
-    return pcall(function()
+    local result, returned = pcall(function()
             return b64encode(
                 aeslua.encrypt(
                     tostring(cfg.general.password),
@@ -158,10 +148,16 @@ function encrypt(plainText)
                     unpack(aesParams)),
                 b64Charsets[cfg.general.b64Charset])
         end)
+    if result and returned then
+        return returned
+    else
+        sendCryptoErrorMessage(false, returned)
+        return ''
+    end
 end
 
 function decrypt(cipherText)
-    return pcall(function()
+    local result, returned = pcall(function()
             return aeslua.decrypt(
                 tostring(cfg.general.password),
                 b64decode(
@@ -169,6 +165,12 @@ function decrypt(cipherText)
                     b64Charsets[cfg.general.b64Charset]),
                 unpack(aesParams))
         end)
+    if result and returned then
+        return returned
+    else
+        sendCryptoErrorMessage(true, returned)
+        return ciphertext
+    end
 end
 
 function sendInlineCryptoMessage(decryption)
@@ -180,15 +182,6 @@ function sendCryptoErrorMessage(decryption, errorMsg)
     if not cfg.general.showErrorMessages then return end
     sampAddChatMessage(string.format('%s error%s.', decryption and 'Decryption' or 'Encryption', errorMsg ~= nil and ' (look in console for details)' or ''), 0xF75A3D)
     if errorMsg ~= nil then print('An error has occurred:\n' .. errorMsg) end
-end
-function getInlineStrings(text)
-    return string.gmatch(text, matchInlinePattern)
-end
-
-function replaceInlineStrings(text, replaceWith)
-    -- Brackets are using to get only first returned value from string.gsub
-    -- http://lua-users.org/wiki/FunctionsTutorial
-    return (string.gsub(text, matchInlinePattern, replaceWith))
 end
 
 -- Utility functions
