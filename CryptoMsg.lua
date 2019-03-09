@@ -111,7 +111,7 @@ function cmdDecrypt(params)
     end
 end
 
-function setHook(event, argsPos, inline, autoEncryptionAvailable, decryption)
+function setHook(event, argsPos, inlineEncryptionAvailable, autoEncryptionAvailable, decryption)
     sampev[event] = function(...)
         if decryption and not cfg.general.autoDecrypt then return true end
         local hookArgs = {...}
@@ -124,12 +124,12 @@ function setHook(event, argsPos, inline, autoEncryptionAvailable, decryption)
             else
                 hookArgs[i] = string.gsub(hookArgs[i], matchInlinePattern, function(exp)
                     print('Exp: '.. exp)
-                    if inline then
+                    if inlineEncryptionAvailable and cfg.general.inlineEncrypt then
                         return string.format(formatInlinePattern, encrypt(exp))
                     elseif decryption then
                         return decrypt(exp)
                     else
-                        return exp
+                        return string.format(formatInlinePattern, exp)
                     end
                 end)
             end
