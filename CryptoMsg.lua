@@ -115,6 +115,8 @@ function setHook(event, argsPos, inline, autoEncryptionAvailable, decryption)
     sampev[event] = function(...)
         if decryption and not cfg.general.autoDecrypt then return true end
         local arg = {...}
+        print(string.format('\n// %s //', decryption and 'Decryption' or 'Encryption'))
+        print('Before: ' .. inspect(arg, {newline = '', indent = ''}))
         for _, argPos in ipairs(argsPos) do
             local exps = nil  -- expressions
 
@@ -123,12 +125,13 @@ function setHook(event, argsPos, inline, autoEncryptionAvailable, decryption)
             elseif inline or decryption then
                 exps = {getInlineStrings(arg[argPos])}
             end
+            print('Exps: ' .. inspect(exps, {newline = '', indent = ''}))
 
             if exps ~= nil then
                 local processed = {}
                 for _, exp in ipairs(exps) do
                     local result, returned = (decryption and decrypt or encrypt)(exp)
-                    print(string.format('Result: %s | Returned: %s | Exp: %s', result, returned, exp))
+                    print(string.format('Exp: %s || Result: %s | Returned: %s', exp, result, returned))
                     if result and returned then
                         if autoEncryptionAvailable and cfg.general.autoEncrypt then
                             arg[argPos] = string.format(formatInlinePattern, returned)
@@ -144,7 +147,7 @@ function setHook(event, argsPos, inline, autoEncryptionAvailable, decryption)
                 print(string.format('exps are nil (original string: %s).', arg[argPos]))
             end
         end
-        print(inspect(arg))
+        print('After: ' .. inspect(arg, {newline = '', indent = ''}))
         return arg
     end
 end
