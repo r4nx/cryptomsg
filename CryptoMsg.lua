@@ -51,16 +51,28 @@ local cfg = {
 function main()
     if not isSampLoaded() or not isSampfuncsLoaded() then return end
     while not isSampAvailable() do wait(100) end
+
+    loadConfig()
+    setHooks()
     
+    sampRegisterChatCommand('encrypt', cmdEncrypt)
+    sampRegisterChatCommand('decrypt', cmdDecrypt)
+    sampRegisterChatCommand('reloadcmsg', function()
+        loadConfig()
+        printStringNow('Config reloaded', 1500)
+    end
+    )
+end
+
+function loadConfig()
     if not doesFileExist(cfgPath) then
         LIP.save(cfgPath, cfg)
     end
     
     cfg = LIP.load(cfgPath)
-    
-    sampRegisterChatCommand('encrypt', cmdEncrypt)
-    sampRegisterChatCommand('decrypt', cmdDecrypt)
+end
 
+function setHooks()
     hooks = {
         {'onSendChat', {1}, true, true, false},
         {'onSendCommand', {1}, true, false, false},
@@ -69,7 +81,7 @@ function main()
         {'onChatMessage', {2}, false, false, true}
     }
     for _, hook in ipairs(hooks) do
-        createHook(unpack(hook))
+        setHook(unpack(hook))
     end
 end
 
@@ -99,7 +111,7 @@ function cmdDecrypt(params)
     end
 end
 
-function createHook(event, argsPos, inline, autoEncryptionAvailable, decryption)
+function setHook(event, argsPos, inline, autoEncryptionAvailable, decryption)
     sampev[event] = function(...)
         if decryption and not cfg.general.autoDecrypt then return true end
         local arg = {...}
