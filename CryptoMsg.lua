@@ -124,7 +124,7 @@ function setHook(event, argsPos, inline, autoEncryptionAvailable, decryption)
             else
                 hookArgs[i] = string.gsub(hookArgs[i], matchInlinePattern, function(exp)
                     print('Exp: '.. exp)
-                    if inline or (autoEncryptionAvailable and cfg.general.autoEncrypt) then
+                    if inline then
                         return string.format(formatInlinePattern, encrypt(exp))
                     elseif decryption then
                         return decrypt(exp)
