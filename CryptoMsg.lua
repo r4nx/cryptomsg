@@ -50,6 +50,18 @@ local cfg = {
     }
 }
 
+local colors = {
+    default = 'AAAAAA',
+    success = '66FF66',
+    error = 'F75A3D',
+    green = '43A047',
+    red = 'E53935',
+    grey = 'BABABA',
+    menuTitle = '4E79AA',
+    menuRow = 'E0E0E0',
+    menuDelimiter = '546E7A'
+}
+
 function main()
     if not isSampLoaded() or not isSampfuncsLoaded() then return end
     while not isSampAvailable() do wait(100) end
@@ -66,7 +78,9 @@ function main()
     }
     
     sampRegisterChatCommand('cmsg', function()
-        lua_thread.create(function() submenus_show(settingsDialog, '{4E79AA}CryptoMsg', 'Select', 'Close', 'Back') end)
+        lua_thread.create(function()
+            submenus_show(settingsDialog, getBrackets(colors.menuTitle) .. 'CryptoMsg', 'Select', 'Close', 'Back')
+        end)
     end)
     sampRegisterChatCommand('encrypt', cmdEncrypt)
     sampRegisterChatCommand('decrypt', cmdDecrypt)
@@ -94,18 +108,29 @@ function setHooks()
     end
 end
 
+function get0x(s)
+    return '0x' .. s
+end
+
+function getBrackets(s)
+    return string.format('{%s}', s)
+end
+
 function statusLabel(status)
-    return string.format(' {546E7A}/ %s', status and '{43A047}[On]' or '{E53935}[Off]')
+    return string.format(' {%s}/ %s',
+        colors.menuDelimiter,
+        status and getBrackets(colors.green) .. '[On]' or getBrackets(colors.red) .. '[Off]'
+    )
 end
 
 -- Unfortunately, Lua passes booleans by value , so we can't just
 -- pass setting variable to function
 function getTogglableMenuRow(name, settings, settingName)
     return {
-        title = '{E0E0E0}' .. name .. statusLabel(settings[settingName]),
+        title = getBrackets(colors.menuRow) .. name .. statusLabel(settings[settingName]),
         onclick = function(menu, row)
             settings[settingName] = not settings[settingName]
-            menu[row].title = '{E0E0E0}' .. name .. statusLabel(settings[settingName])
+            menu[row].title = getBrackets(colors.menuRow) .. name .. statusLabel(settings[settingName])
             inicfg.save(cfg, cfgPath)
             return true
         end
@@ -114,12 +139,12 @@ end
 
 function cmdEncrypt(params)
     if string.len(params) <= 0 then
-        sampAddChatMessage('Usage: /encrypt {BABABA}<message>', 0xAAAAAA)
+        sampAddChatMessage(string.format('Usage: /encrypt {%s}<message>', colors.grey), get0x(colors.default))
         return
     end
     result, returned = encrypt(params)
     if result and returned then
-        sampAddChatMessage(string.format('Encrypted: {AAAAAA}%s', returned), 0x66FF66)
+        sampAddChatMessage(string.format('Encrypted: {%s}%s', colors.default, returned), get0x(colors.success))
     else
         sendCryptoErrorMessage(false, returned)
     end
@@ -127,12 +152,12 @@ end
 
 function cmdDecrypt(params)
     if string.len(params) <= 0 then
-        sampAddChatMessage('Usage: /decrypt {BABABA}<message>', 0xAAAAAA)
+        sampAddChatMessage(string.format('Usage: /decrypt {%s}<message>', colors.grey), get0x(colors.default))
         return
     end
     local result, returned = decrypt(params)
     if result and returned then
-        sampAddChatMessage(string.format('Decrypted: {AAAAAA}%s', returned), 0x66FF66)
+        sampAddChatMessage(string.format('Decrypted: {%s}%s', colors.default, returned), get0x(colors.success))
     else
         sendCryptoErrorMessage(true, returned)
     end
@@ -204,12 +229,12 @@ end
 
 function sendInlineCryptoMessage(decryption)
     if not cfg.general.showInlineInfoMessages then return end
-    sampAddChatMessage(string.format('Inline %s.', decryption and 'decrypted' or 'encrypted'), 0xAAAAAA)
+    sampAddChatMessage(string.format('Inline %s.', decryption and 'decrypted' or 'encrypted'), get0x(colors.default))
 end
 
 function sendCryptoErrorMessage(decryption, errorMsg)
     if not cfg.general.showErrorMessages then return end
-    sampAddChatMessage(string.format('%s error%s.', decryption and 'Decryption' or 'Encryption', errorMsg ~= nil and ' (look in console for details)' or ''), 0xF75A3D)
+    sampAddChatMessage(string.format('%s error%s.', decryption and 'Decryption' or 'Encryption', errorMsg ~= nil and ' (look in console for details)' or ''), get0x(colors.error))
     if errorMsg ~= nil then print('An error has occurred:\n' .. errorMsg) end
 end
 
