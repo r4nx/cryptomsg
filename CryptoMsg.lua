@@ -33,6 +33,7 @@ local b64Charsets = {
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz*&|:;,!?@#+/'
 }
 local matchInlinePattern = '%$CS(.-)%$CE'
+-- This should be exactly opposite to the pattern above
 local formatInlinePattern = '$CS%s$CE'
 local cfgPath = 'moonloader/config/cryptomsg.ini'
 
@@ -144,9 +145,11 @@ end
 function setHook(event, argsPos, inlineEncryptionAvailable, autoEncryptionAvailable, decryption)
     sampev[event] = function(...)
         if decryption and not cfg.general.autoDecrypt then return true end
+        -- Get all arguments passed to setHook function ..
         local hookArgs = {...}
         print(string.format('\n// %s //', decryption and 'Decryption' or 'Encryption'))
         print('Before: ' .. inspect(hookArgs, {newline = '', indent = ''}))
+        -- .. and perform encryption/decryption for each of them
         for _, i in ipairs(argsPos) do
             if autoEncryptionAvailable and cfg.general.autoEncrypt then
                 hookArgs[i] = string.format(formatInlinePattern, encrypt(hookArgs[i]))
@@ -258,6 +261,7 @@ function submenus_show(menu, caption, select_button, close_button, back_button)
 	return display(menu, 36825, caption or menu.title)
 end
 
+-- http://lua-users.org/wiki/BaseSixtyFour
 function b64encode(data, chars)
     return ((data:gsub('.', function(x)
         local r, b = '', x:byte()
