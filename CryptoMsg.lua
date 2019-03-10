@@ -69,12 +69,75 @@ function main()
     loadConfig()
     setHooks()
 
+    local b64CharsetsNamings = {
+        'Digits',
+        'Special chars'
+    }
+
     local settingsDialog = {
         getTogglableMenuRow('Inline Encryption', cfg.general, 'inlineEncrypt'),
         getTogglableMenuRow('Auto Encryption', cfg.general, 'autoEncrypt'),
         getTogglableMenuRow('Auto Decryption', cfg.general, 'autoDecrypt'),
         getTogglableMenuRow('Show info messages', cfg.general, 'showInlineInfoMessages'),
         getTogglableMenuRow('Show error messages', cfg.general, 'showErrorMessages'),
+        {
+            title = string.format('%sBase64 charset  %s/%s  %s',
+                getBrackets(colors.menuRow),
+                getBrackets(colors.menuDelimiter),
+                getBrackets(colors.menuRow),
+                b64CharsetsNamings[cfg.general.b64Charset]
+            ),
+            onclick = function(menu, row)
+                if cfg.general.b64Charset < #b64Charsets then
+                    cfg.general.b64Charset = cfg.general.b64Charset + 1
+                else
+                    cfg.general.b64Charset = 1
+                end
+                inicfg.save(cfg, cfgPath)
+                menu[row].title = string.format('%sBase64 charset  %s/%s  %s',
+                    getBrackets(colors.menuRow),
+                    getBrackets(colors.menuDelimiter),
+                    getBrackets(colors.menuRow),
+                    b64CharsetsNamings[cfg.general.b64Charset]
+                )
+                return true
+            end
+        },
+        {
+            title = getBrackets(colors.menuRow) .. 'Password',
+            onclick = function()
+                sampShowDialog(
+                    36826,
+                    getBrackets(colors.menuTitle) .. 'Password',
+                    string.format('%sCurrent password: %s%s%s\n\nEnter new password:',
+                        getBrackets(colors.default),
+                        getBrackets(colors.green),
+                        cfg.general.password,
+                        getBrackets(colors.default)
+                    ),
+                    'Done',
+                    'Close',
+                    sf.DIALOG_STYLE_INPUT
+                )
+                lua_thread.create(function()
+                        print('Run password dialog thread')
+                        repeat
+                            wait(0)
+                            local result, button, _, input = sampHasDialogRespond(36826)
+                            if result and button == 1 then
+                                if string.len(input) > 0 then
+                                    cfg.general.password = input
+                                    inicfg.save(cfg, cfgPath)
+                                    sampAddChatMessage('Password was changed.', get0x(colors.success))
+                                else
+                                    sampAddChatMessage('Password cannot be empty.', get0x(colors.error))
+                                end
+                            end
+                        until result
+                        print('Exited password dialog thread')
+                end)
+            end
+        }
     }
     
     sampRegisterChatCommand('cmsg', function()
@@ -117,7 +180,7 @@ function getBrackets(s)
 end
 
 function statusLabel(status)
-    return string.format(' {%s}/ %s',
+    return string.format('  {%s}/  %s',
         colors.menuDelimiter,
         status and getBrackets(colors.green) .. '[On]' or getBrackets(colors.red) .. '[Off]'
     )
