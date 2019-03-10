@@ -142,11 +142,9 @@ function cmdEncrypt(params)
         sampAddChatMessage(string.format('Usage: /encrypt {%s}<message>', colors.grey), get0x(colors.default))
         return
     end
-    result, returned = encrypt(params)
-    if result and returned then
-        sampAddChatMessage(string.format('Encrypted: {%s}%s', colors.default, returned), get0x(colors.success))
-    else
-        sendCryptoErrorMessage(false, returned)
+    local ciphertext = encrypt(params)
+    if ciphertext then
+        sampAddChatMessage(string.format('Encrypted: {%s}%s', colors.default, ciphertext), get0x(colors.success))
     end
 end
 
@@ -155,11 +153,9 @@ function cmdDecrypt(params)
         sampAddChatMessage(string.format('Usage: /decrypt {%s}<message>', colors.grey), get0x(colors.default))
         return
     end
-    local result, returned = decrypt(params)
-    if result and returned then
-        sampAddChatMessage(string.format('Decrypted: {%s}%s', colors.default, returned), get0x(colors.success))
-    else
-        sendCryptoErrorMessage(true, returned)
+    local plaintext = decrypt(params)
+    if plaintext then
+        sampAddChatMessage(string.format('Decrypted: {%s}%s', colors.default, plaintext), get0x(colors.success))
     end
 end
 
@@ -173,13 +169,13 @@ function setHook(event, argsPos, inlineEncryptionAvailable, autoEncryptionAvaila
         -- .. and perform encryption/decryption for each of them
         for _, i in ipairs(argsPos) do
             if autoEncryptionAvailable and cfg.general.autoEncrypt then
-                hookArgs[i] = string.format(formatInlinePattern, encrypt(hookArgs[i]))
+                hookArgs[i] = string.format(formatInlinePattern, encrypt(hookArgs[i]) or '')
                 print('Auto-encrypted:' .. hookArgs[i])
             else
                 hookArgs[i] = string.gsub(hookArgs[i], matchInlinePattern, function(exp)
                     print('Exp: '.. exp)
                     if inlineEncryptionAvailable and cfg.general.inlineEncrypt then
-                        return string.format(formatInlinePattern, encrypt(exp))
+                        return string.format(formatInlinePattern, encrypt(exp) or '')
                     elseif decryption then
                         return decrypt(exp)
                     else
@@ -206,7 +202,7 @@ function encrypt(plainText)
         return returned
     else
         sendCryptoErrorMessage(false, returned)
-        return ''
+        return nil
     end
 end
 
