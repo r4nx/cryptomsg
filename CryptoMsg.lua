@@ -102,6 +102,41 @@ function main()
                 )
                 return true
             end
+        },
+        {
+            title = getBrackets(colors.menuRow) .. 'Password',
+            onclick = function()
+                sampShowDialog(
+                    36826,
+                    getBrackets(colors.menuTitle) .. 'Password',
+                    string.format('%sCurrent password: %s%s%s\n\nEnter new password:',
+                        getBrackets(colors.default),
+                        getBrackets(colors.green),
+                        cfg.general.password,
+                        getBrackets(colors.default)
+                    ),
+                    'Done',
+                    'Close',
+                    sf.DIALOG_STYLE_INPUT
+                )
+                lua_thread.create(function()
+                        print('Run password dialog thread')
+                        repeat
+                            wait(0)
+                            local result, button, _, input = sampHasDialogRespond(36826)
+                            if result and button == 1 then
+                                if string.len(input) > 0 then
+                                    cfg.general.password = input
+                                    inicfg.save(cfg, cfgPath)
+                                    sampAddChatMessage('Password was changed.', get0x(colors.success))
+                                else
+                                    sampAddChatMessage('Password cannot be empty.', get0x(colors.error))
+                                end
+                            end
+                        until result
+                        print('Exited password dialog thread')
+                end)
+            end
         }
     }
     
