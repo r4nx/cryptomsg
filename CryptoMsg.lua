@@ -32,10 +32,16 @@ local b64Charsets = {
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz*&|:;,!?@#+/'
 }
+local b64CharsetsNamings = {
+    'Digits',
+    'Special chars'
+}
 local matchInlinePattern = '%$CS(.-)%$CE'
 -- This should be exactly opposite to the pattern above
 local formatInlinePattern = '$CS%s$CE'
 local cfgPath = 'cryptomsg.ini'
+
+local settignsDialog = {}
 
 -- Default config
 local cfg = {
@@ -68,13 +74,46 @@ function main()
 
     loadConfig()
     setHooks()
+    loadSettingsDialog()
+    
+    sampRegisterChatCommand('cmsg', function()
+        lua_thread.create(function()
+            submenus_show(
+                settingsDialog,
+                string.format('%sCryptoMsg %sv%s', getBrackets(colors.menuTitle), getBrackets(colors.green), thisScript().version),
+                'Select', 'Close', 'Back'
+            )
+        end)
+    end)
+    sampRegisterChatCommand('encrypt', cmdEncrypt)
+    sampRegisterChatCommand('decrypt', cmdDecrypt)
+    sampRegisterChatCommand('reloadcmsg', function()
+        loadConfig()
+        loadSettingsDialog()
+        printStringNow('Config reloaded', 1500)
+    end
+    )
+end
 
-    local b64CharsetsNamings = {
-        'Digits',
-        'Special chars'
+function loadConfig()
+    cfg = inicfg.load(cfg, cfgPath)
+end
+
+function setHooks()
+    hooks = {
+        {'onSendChat', {1}, true, true, false},
+        {'onSendCommand', {1}, true, false, false},
+        {'onSendDialogResponse', {4}, true, true, false},
+        {'onServerMessage', {2}, false, false, true},
+        {'onChatMessage', {2}, false, false, true}
     }
+    for _, hook in ipairs(hooks) do
+        setHook(unpack(hook))
+    end
+end
 
-    local settingsDialog = {
+function loadSettingsDialog()
+    settingsDialog = {
         getTogglableMenuRow('Inline Encryption', cfg.general, 'inlineEncrypt'),
         getTogglableMenuRow('Auto Encryption', cfg.general, 'autoEncrypt'),
         getTogglableMenuRow('Auto Decryption', cfg.general, 'autoDecrypt'),
@@ -139,36 +178,6 @@ function main()
             end
         }
     }
-    
-    sampRegisterChatCommand('cmsg', function()
-        lua_thread.create(function()
-            submenus_show(settingsDialog, getBrackets(colors.menuTitle) .. 'CryptoMsg', 'Select', 'Close', 'Back')
-        end)
-    end)
-    sampRegisterChatCommand('encrypt', cmdEncrypt)
-    sampRegisterChatCommand('decrypt', cmdDecrypt)
-    sampRegisterChatCommand('reloadcmsg', function()
-        loadConfig()
-        printStringNow('Config reloaded', 1500)
-    end
-    )
-end
-
-function loadConfig()
-    cfg = inicfg.load(cfg, cfgPath)
-end
-
-function setHooks()
-    hooks = {
-        {'onSendChat', {1}, true, true, false},
-        {'onSendCommand', {1}, true, false, false},
-        {'onSendDialogResponse', {4}, true, true, false},
-        {'onServerMessage', {2}, false, false, true},
-        {'onChatMessage', {2}, false, false, true}
-    }
-    for _, hook in ipairs(hooks) do
-        setHook(unpack(hook))
-    end
 end
 
 function get0x(s)
