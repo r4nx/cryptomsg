@@ -69,12 +69,40 @@ function main()
     loadConfig()
     setHooks()
 
+    local b64CharsetsNamings = {
+        'Digits',
+        'Special chars'
+    }
+
     local settingsDialog = {
         getTogglableMenuRow('Inline Encryption', cfg.general, 'inlineEncrypt'),
         getTogglableMenuRow('Auto Encryption', cfg.general, 'autoEncrypt'),
         getTogglableMenuRow('Auto Decryption', cfg.general, 'autoDecrypt'),
         getTogglableMenuRow('Show info messages', cfg.general, 'showInlineInfoMessages'),
         getTogglableMenuRow('Show error messages', cfg.general, 'showErrorMessages'),
+        {
+            title = string.format('%sBase64 charset  %s/%s  %s',
+                getBrackets(colors.menuRow),
+                getBrackets(colors.menuDelimiter),
+                getBrackets(colors.menuRow),
+                b64CharsetsNamings[cfg.general.b64Charset]
+            ),
+            onclick = function(menu, row)
+                if cfg.general.b64Charset < #b64Charsets then
+                    cfg.general.b64Charset = cfg.general.b64Charset + 1
+                else
+                    cfg.general.b64Charset = 1
+                end
+                inicfg.save(cfg, cfgPath)
+                menu[row].title = string.format('%sBase64 charset  %s/%s  %s',
+                    getBrackets(colors.menuRow),
+                    getBrackets(colors.menuDelimiter),
+                    getBrackets(colors.menuRow),
+                    b64CharsetsNamings[cfg.general.b64Charset]
+                )
+                return true
+            end
+        }
     }
     
     sampRegisterChatCommand('cmsg', function()
@@ -117,7 +145,7 @@ function getBrackets(s)
 end
 
 function statusLabel(status)
-    return string.format(' {%s}/ %s',
+    return string.format('  {%s}/  %s',
         colors.menuDelimiter,
         status and getBrackets(colors.green) .. '[On]' or getBrackets(colors.red) .. '[Off]'
     )
