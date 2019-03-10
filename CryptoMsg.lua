@@ -311,43 +311,43 @@ end
 
 -- https://gist.github.com/THE-FYP/e89a10df29698219b56bb37bc194cb31
 function submenus_show(menu, caption, select_button, close_button, back_button)
-	select_button, close_button, back_button = select_button or 'Select', close_button or 'Close', back_button or 'Back'
-	prev_menus = {}
-	function display(menu, id, caption)
-		local string_list = {}
-		for i, v in ipairs(menu) do
-			table.insert(string_list, type(v.submenu) == 'table' and v.title .. '  >>' or v.title)
-		end
-		sampShowDialog(id, caption, table.concat(string_list, '\n'), select_button, (#prev_menus > 0) and back_button or close_button, sf.DIALOG_STYLE_LIST)
-		repeat
-			wait(0)
-			local result, button, list = sampHasDialogRespond(id)
-			if result then
-				if button == 1 and list ~= -1 then
-					local item = menu[list + 1]
-					if type(item.submenu) == 'table' then -- submenu
-						table.insert(prev_menus, {menu = menu, caption = caption})
-						if type(item.onclick) == 'function' then
-							item.onclick(menu, list + 1, item.submenu)
-						end
-						return display(item.submenu, id + 1, item.submenu.title and item.submenu.title or item.title)
-					elseif type(item.onclick) == 'function' then
-						local result = item.onclick(menu, list + 1)
-						if not result then return result end
-						return display(menu, id, caption)
-					end
-				else -- if button == 0
-					if #prev_menus > 0 then
-						local prev_menu = prev_menus[#prev_menus]
-						prev_menus[#prev_menus] = nil
-						return display(prev_menu.menu, id - 1, prev_menu.caption)
-					end
-					return false
-				end
-			end
-		until result
-	end
-	return display(menu, 36825, caption or menu.title)
+    select_button, close_button, back_button = select_button or 'Select', close_button or 'Close', back_button or 'Back'
+    prev_menus = {}
+    function display(menu, id, caption)
+        local string_list = {}
+        for i, v in ipairs(menu) do
+            table.insert(string_list, type(v.submenu) == 'table' and v.title .. '  >>' or v.title)
+        end
+        sampShowDialog(id, caption, table.concat(string_list, '\n'), select_button, (#prev_menus > 0) and back_button or close_button, sf.DIALOG_STYLE_LIST)
+        repeat
+            wait(0)
+            local result, button, list = sampHasDialogRespond(id)
+            if result then
+                if button == 1 and list ~= -1 then
+                    local item = menu[list + 1]
+                    if type(item.submenu) == 'table' then -- submenu
+                        table.insert(prev_menus, {menu = menu, caption = caption})
+                        if type(item.onclick) == 'function' then
+                            item.onclick(menu, list + 1, item.submenu)
+                        end
+                        return display(item.submenu, id + 1, item.submenu.title and item.submenu.title or item.title)
+                    elseif type(item.onclick) == 'function' then
+                        local result = item.onclick(menu, list + 1)
+                        if not result then return result end
+                        return display(menu, id, caption)
+                    end
+                else -- if button == 0
+                    if #prev_menus > 0 then
+                        local prev_menu = prev_menus[#prev_menus]
+                        prev_menus[#prev_menus] = nil
+                        return display(prev_menu.menu, id - 1, prev_menu.caption)
+                    end
+                    return false
+                end
+            end
+        until result
+    end
+    return display(menu, 36825, caption or menu.title)
 end
 
 -- http://lua-users.org/wiki/BaseSixtyFour
