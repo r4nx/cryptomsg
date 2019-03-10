@@ -23,8 +23,8 @@ require 'lib.moonloader'
 require 'lib.aeslua'
 
 local sf = require 'lib.sampfuncs'
+local inicfg = require 'inicfg'
 local sampev = require 'lib.samp.events'
-local LIP = require 'lib.LIP'
 local inspect = require 'lib.inspect'
 
 local aesParams = {aeslua.AES256, aeslua.CBCMODE}
@@ -35,7 +35,7 @@ local b64Charsets = {
 local matchInlinePattern = '%$CS(.-)%$CE'
 -- This should be exactly opposite to the pattern above
 local formatInlinePattern = '$CS%s$CE'
-local cfgPath = 'moonloader/config/cryptomsg.ini'
+local cfgPath = 'cryptomsg.ini'
 
 -- Default config
 local cfg = {
@@ -46,7 +46,7 @@ local cfg = {
         showInlineInfoMessages = false,
         showErrorMessages = true,
         b64Charset = 1,
-        password = ''
+        password = 'changeme'
     }
 }
 
@@ -78,11 +78,7 @@ function main()
 end
 
 function loadConfig()
-    if not doesFileExist(cfgPath) then
-        LIP.save(cfgPath, cfg)
-    end
-    
-    cfg = LIP.load(cfgPath)
+    cfg = inicfg.load(cfg, cfgPath)
 end
 
 function setHooks()
@@ -110,7 +106,7 @@ function getTogglableMenuRow(name, settings, settingName)
         onclick = function(menu, row)
             settings[settingName] = not settings[settingName]
             menu[row].title = '{E0E0E0}' .. name .. statusLabel(settings[settingName])
-            LIP.save(cfgPath, cfg)
+            inicfg.save(cfg, cfgPath)
             return true
         end
     }
