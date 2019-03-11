@@ -72,6 +72,7 @@ function main()
     if not isSampLoaded() or not isSampfuncsLoaded() then return end
     while not isSampAvailable() do wait(100) end
 
+    initialEncrypt()
     loadConfig()
     setHooks()
     loadSettingsDialog()
@@ -306,6 +307,19 @@ function sendCryptoErrorMessage(decryption, errorMsg)
     if errorMsg ~= nil then print('An error has occurred:\n' .. errorMsg) end
 end
 
+-- This trick is needed because aeslua does not
+-- generate IV, it's based on previous encryption/decryption,
+-- so we need to generate random plaintext (same plaintexts will give
+-- you same IV, same IV will give you same ciphertexts)
+function initialEncrypt()
+    local result, returned = pcall(function()
+        return aeslua.encrypt('password', string.random(8), unpack(aesParams))
+    end)
+    if not (result and returned) then
+        print('Initial encryption failed:\n' .. returned)
+    end
+end
+
 -- Utility functions
 -- =================
 
@@ -377,4 +391,14 @@ function b64decode(data, chars)
         for i = 1, 8 do c = c + (x:sub(i, i) == '1' and 2 ^ (8 - i) or 0) end
         return string.char(c)
     end))
+end
+
+function string.random(length)
+    local charset = {}
+    string.gsub('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', '.',
+        function(c) table.insert(charset, c) end)
+
+    if not length or length <= 0 then return '' end
+    math.randomseed(os.clock() ^ 5)
+    return string.random(length - 1) .. charset[math.random(1, #charset)]
 end
