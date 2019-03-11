@@ -160,21 +160,21 @@ function loadSettingsDialog()
                     sf.DIALOG_STYLE_INPUT
                 )
                 lua_thread.create(function()
-                        print('Run password dialog thread')
-                        repeat
-                            wait(0)
-                            local result, button, _, input = sampHasDialogRespond(36826)
-                            if result and button == 1 then
-                                if string.len(input) > 0 then
-                                    cfg.general.password = input
-                                    inicfg.save(cfg, cfgPath)
-                                    sampAddChatMessage('Password was changed.', get0x(colors.success))
-                                else
-                                    sampAddChatMessage('Password cannot be empty.', get0x(colors.error))
-                                end
+                    print('Run password dialog thread')
+                    repeat
+                        wait(0)
+                        local result, button, _, input = sampHasDialogRespond(36826)
+                        if result and button == 1 then
+                            if string.len(input) > 0 then
+                                cfg.general.password = input
+                                inicfg.save(cfg, cfgPath)
+                                sampAddChatMessage('Password was changed.', get0x(colors.success))
+                            else
+                                sampAddChatMessage('Password cannot be empty.', get0x(colors.error))
                             end
-                        until result
-                        print('Exited password dialog thread')
+                        end
+                    until result
+                    print('Exited password dialog thread')
                 end)
             end
         }
@@ -264,13 +264,13 @@ end
 
 function encrypt(plainText)
     local result, returned = pcall(function()
-            return b64encode(
-                aeslua.encrypt(
-                    tostring(cfg.general.password),
-                    plainText,
-                    unpack(aesParams)),
-                b64Charsets[cfg.general.b64Charset])
-        end)
+        return b64encode(
+            aeslua.encrypt(
+                tostring(cfg.general.password),
+                plainText,
+                unpack(aesParams)),
+            b64Charsets[cfg.general.b64Charset])
+    end)
     if result and returned then
         return returned
     else
@@ -281,13 +281,13 @@ end
 
 function decrypt(cipherText)
     local result, returned = pcall(function()
-            return aeslua.decrypt(
-                tostring(cfg.general.password),
-                b64decode(
-                    cipherText,
-                    b64Charsets[cfg.general.b64Charset]),
-                unpack(aesParams))
-        end)
+        return aeslua.decrypt(
+            tostring(cfg.general.password),
+            b64decode(
+                cipherText,
+                b64Charsets[cfg.general.b64Charset]),
+            unpack(aesParams))
+    end)
     if result and returned then
         return returned
     else
