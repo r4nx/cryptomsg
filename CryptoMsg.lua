@@ -17,7 +17,7 @@
 script_name('CryptoMsg')
 script_author('Ranx')
 script_description('In-game AES encryption')
-script_version('0.2.0')
+script_version('0.3.0')
 
 require 'lib.moonloader'
 require 'lib.aeslua'
