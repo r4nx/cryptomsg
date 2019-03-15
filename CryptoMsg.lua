@@ -65,7 +65,7 @@ local cfg = {
 local colors = {
     default = 'AAAAAA',
     success = '66FF66',
-    error = 'F75A3D',
+    fail = 'F75A3D',
     green = '43A047',
     red = 'E53935',
     grey = 'BABABA',
@@ -176,7 +176,7 @@ function loadSettingsDialog()
                                 inicfg.save(cfg, cfgPath)
                                 sampAddChatMessage('Password was changed.', get0x(colors.success))
                             else
-                                sampAddChatMessage('Password cannot be empty.', get0x(colors.error))
+                                sampAddChatMessage('Password cannot be empty.', get0x(colors.fail))
                             end
                         end
                     until result
@@ -309,7 +309,7 @@ end
 
 function sendCryptoErrorMessage(decryption, errorMsg)
     if not cfg.general.showErrorMessages then return end
-    sampAddChatMessage(string.format('%s error%s.', decryption and 'Decryption' or 'Encryption', errorMsg ~= nil and ' (look in console for details)' or ''), get0x(colors.error))
+    sampAddChatMessage(string.format('%s error%s.', decryption and 'Decryption' or 'Encryption', errorMsg ~= nil and ' (look in console for details)' or ''), get0x(colors.fail))
     if errorMsg ~= nil then print('An error has occurred:\n' .. errorMsg) end
 end
 
