@@ -25,8 +25,14 @@ require 'lib.aeslua'
 local sf = require 'lib.sampfuncs'
 local inicfg = require 'inicfg'
 local sampev = require 'lib.samp.events'
-local inspect = require 'lib.inspect'
+local result, inspect = pcall(require, 'lib.inspect')
+-- Use dummy function, if inspect module was not found to avoid
+-- inspect existence checks on every call
+if not result or inspect then
+    inspect = function() return 'inspect is not available' end
+end
 
+local debugMode = true
 local aesParams = {aeslua.AES256, aeslua.CBCMODE}
 local b64Charsets = {
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
@@ -160,7 +166,7 @@ function loadSettingsDialog()
                     sf.DIALOG_STYLE_INPUT
                 )
                 lua_thread.create(function()
-                    print('Run password dialog thread')
+                    dbgMsg('Run password dialog thread')
                     repeat
                         wait(0)
                         local result, button, _, input = sampHasDialogRespond(36826)
@@ -174,7 +180,7 @@ function loadSettingsDialog()
                             end
                         end
                     until result
-                    print('Exited password dialog thread')
+                    dbgMsg('Exited password dialog thread')
                 end)
             end
         }
@@ -237,16 +243,16 @@ function setHook(event, argsPos, inlineEncryptionAvailable, autoEncryptionAvaila
         if decryption and not cfg.general.autoDecrypt then return true end
         -- Get all arguments passed to setHook function ..
         local hookArgs = {...}
-        print(string.format('\n// %s //', decryption and 'Decryption' or 'Encryption'))
-        print('Before: ' .. inspect(hookArgs, {newline = '', indent = ''}))
+        dbgMsg(string.format('\n// %s //', decryption and 'Decryption' or 'Encryption'))
+        dbgMsg('Before: ' .. inspect(hookArgs, {newline = '', indent = ''}))
         -- .. and perform encryption/decryption for each of them
         for _, i in ipairs(argsPos) do
             if autoEncryptionAvailable and cfg.general.autoEncrypt then
                 hookArgs[i] = string.format(formatInlinePattern, encrypt(hookArgs[i]) or '')
-                print('Auto-encrypted:' .. hookArgs[i])
+                dbgMsg('Auto-encrypted:' .. hookArgs[i])
             else
                 hookArgs[i] = string.gsub(hookArgs[i], matchInlinePattern, function(exp)
-                    print('Exp: '.. exp)
+                    dbgMsg('Exp: '.. exp)
                     if inlineEncryptionAvailable and cfg.general.inlineEncrypt then
                         return string.format(formatInlinePattern, encrypt(exp) or '')
                     elseif decryption then
@@ -257,7 +263,7 @@ function setHook(event, argsPos, inlineEncryptionAvailable, autoEncryptionAvaila
                 end)
             end
         end
-        print('After: ' .. inspect(hookArgs, {newline = '', indent = ''}))
+        dbgMsg('After: ' .. inspect(hookArgs, {newline = '', indent = ''}))
         return hookArgs
     end
 end
@@ -318,6 +324,10 @@ function initialEncrypt()
     if not (result and returned) then
         print('Initial encryption failed:\n' .. returned)
     end
+end
+
+function dbgMsg(msg)
+    if debugMode then print(msg) end
 end
 
 -- Utility functions
