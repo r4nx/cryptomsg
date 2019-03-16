@@ -47,8 +47,6 @@ local matchInlinePattern = '%$CS(.-)%$CE'
 local formatInlinePattern = '$CS%s$CE'
 local cfgPath = 'cryptomsg.ini'
 
-local settignsDialog = {}
-
 -- Default config
 local cfg = {
     general = {
