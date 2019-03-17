@@ -28,7 +28,7 @@ local sampev = require 'lib.samp.events'
 local result, inspect = pcall(require, 'lib.inspect')
 -- Use dummy function, if inspect module was not found to avoid
 -- inspect existence checks on every call
-if not result or inspect then
+if not (result and inspect) then
     inspect = function() return 'inspect is not available' end
 end
 
