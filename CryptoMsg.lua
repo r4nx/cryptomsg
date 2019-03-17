@@ -111,7 +111,8 @@ function setHooks()
         {'onSendCommand', {1}, true, false, false},
         {'onSendDialogResponse', {4}, true, true, false},
         {'onServerMessage', {2}, false, false, true},
-        {'onChatMessage', {2}, false, false, true}
+        {'onChatMessage', {2}, false, false, true},
+        {'onPlayerChatBubble', {4}, false, false, true}
     }
     for _, hook in ipairs(hooks) do
         setHook(unpack(hook))
