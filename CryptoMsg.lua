@@ -33,6 +33,8 @@ if not (result and inspect) then
 end
 
 local debugMode = true
+-- Functions, that are executed by only one thread
+local singleCopyThreads = {}
 local aesParams = {aeslua.AES256, aeslua.CBCMODE}
 local b64Charsets = {
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
@@ -82,7 +84,7 @@ function main()
     loadSettingsDialog()
     
     sampRegisterChatCommand('cmsg', function()
-        lua_thread.create(function()
+        runSingleThread('cmsgMenu', function()
             submenus_show(
                 settingsDialog,
                 string.format('%sCryptoMsg %sv%s', getBrackets(colors.menuTitle), getBrackets(colors.green), thisScript().version),
@@ -96,8 +98,7 @@ function main()
         loadConfig()
         loadSettingsDialog()
         printStringNow('Config reloaded', 1500)
-    end
-    )
+    end)
 end
 
 function loadConfig()
@@ -163,8 +164,7 @@ function loadSettingsDialog()
                     'Close',
                     sf.DIALOG_STYLE_INPUT
                 )
-                lua_thread.create(function()
-                    dbgMsg('Run password dialog thread')
+                runSingleThread('passwordDialog', function()
                     repeat
                         wait(0)
                         local result, button, _, input = sampHasDialogRespond(36826)
@@ -178,7 +178,6 @@ function loadSettingsDialog()
                             end
                         end
                     until result
-                    dbgMsg('Exited password dialog thread')
                 end)
             end
         }
@@ -326,6 +325,17 @@ end
 
 function dbgMsg(msg)
     if debugMode then print(msg) end
+end
+
+function runSingleThread(name, ...)
+    local t = singleCopyThreads[name]
+    if t ~= nil and not t.dead then
+        t:terminate()
+        singleCopyThreads[name] = nil
+        dbgMsg('Terminated thread ' .. name)
+    end
+    singleCopyThreads[name] = lua_thread.create(...)
+    dbgMsg('Ran thread ' .. name)
 end
 
 -- Utility functions
